@@ -1,0 +1,30 @@
+# Backend
+backend/target/
+backend/.aws-sam/
+backend/hs_err_*.log
+backend/replay_*.log
+
+# Frontend Angular
+frontend/email-assistant-ui/node_modules/
+frontend/email-assistant-ui/dist/
+frontend/email-assistant-ui/.angular/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SAM
+samconfig.toml
+
+# Temp
+bucket-policy.json
+
+# Eclipse
+.classpath
+.project
+.settings/

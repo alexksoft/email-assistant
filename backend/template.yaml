@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Email Assistant MVP - AI-powered email categorization and draft generation
+
+Globals:
+  Function:
+    Runtime: java17
+    MemorySize: 512
+    Timeout: 30
+    Environment:
+      Variables:
+        USERS_TABLE: !Ref UsersTable
+        EMAILS_TABLE: !Ref EmailsTable
+        JWT_SECRET: !Ref JwtSecret
+        GEMINI_API_KEY: !Ref GeminiApiKey
+        GMAIL_CLIENT_ID: !Ref GmailClientId
+        GMAIL_CLIENT_SECRET: !Ref GmailClientSecret
+        OUTLOOK_CLIENT_ID: !Ref OutlookClientId
+        OUTLOOK_CLIENT_SECRET: !Ref OutlookClientSecret
+        OAUTH_REDIRECT_URI: !Ref OAuthRedirectUri
+
+Parameters:
+  JwtSecret:
+    Type: String
+    NoEcho: true
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+  GmailClientId:
+    Type: String
+  GmailClientSecret:
+    Type: String
+    NoEcho: true
+  OutlookClientId:
+    Type: String
+  OutlookClientSecret:
+    Type: String
+    NoEcho: true
+  OAuthRedirectUri:
+    Type: String
+    Default: https://your-api-id.execute-api.us-east-1.amazonaws.com/prod/auth/oauth/callback
+
+Resources:
+  # API Gateway
+  EmailAssistantApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"  # For production, restrict to your frontend domain
+
+  # Lambda Functions
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.emailassistant.handler.AuthHandler::handleRequest
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        Register:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /auth/register
+            Method: POST
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /auth/login
+            Method: POST
+        OAuthGmail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /auth/oauth/gmail
+            Method: GET
+        OAuthOutlook:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /auth/oauth/outlook
+            Method: GET
+        OAuthCallback:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /auth/oauth/callback
+            Method: GET
+
+  EmailSyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.emailassistant.handler.EmailSyncHandler::handleRequest
+      CodeUri: .
+      Timeout: 120
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmailsTable
+      Events:
+        Sync:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /emails/sync
+            Method: POST
+        ScheduledSync:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
+            Enabled: false
+
+  EmailProcessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.emailassistant.handler.EmailProcessHandler::handleRequest
+      CodeUri: .
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmailsTable
+      Events:
+        Process:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /emails/{id}/process
+            Method: POST
+
+  DashboardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.emailassistant.handler.DashboardHandler::handleRequest
+      CodeUri: .
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmailsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        ListEmails:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /emails
+            Method: GET
+        GetEmail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /emails/{id}
+            Method: GET
+        Stats:
+          Type: Api
+          Properties:
+            RestApiId: !Ref EmailAssistantApi
+            Path: /dashboard/stats
+            Method: GET
+
+  # DynamoDB Tables
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: EmailAssistant_Users
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  EmailsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: EmailAssistant_Emails
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: emailId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: emailId
+          KeyType: RANGE
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${EmailAssistantApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"

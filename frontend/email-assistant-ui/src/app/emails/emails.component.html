@@ -1,0 +1,50 @@
+<div class="emails-page">
+  <header>
+    <button (click)="back()">← Back to Dashboard</button>
+    <h2>Processed Emails</h2>
+  </header>
+
+  <div class="loading" *ngIf="loading">Loading emails...</div>
+
+  <div class="emails-layout" *ngIf="!loading">
+    <div class="email-list">
+      <div
+        class="email-item"
+        *ngFor="let email of emails"
+        [class.selected]="selectedEmail?.emailId === email.emailId"
+        (click)="selectEmail(email)"
+      >
+        <div class="email-header">
+          <span class="from">{{ email.from }}</span>
+          <span class="priority">{{ getPriorityLabel(email.priority) }}</span>
+        </div>
+        <div class="subject">{{ email.subject }}</div>
+        <div class="meta">
+          <span class="category" [style.background]="getCategoryColor(email.category)">
+            {{ email.category }}
+          </span>
+          <span class="date">{{ email.receivedAt | date: 'short' }}</span>
+        </div>
+      </div>
+      <div *ngIf="emails.length === 0" class="empty">No emails found. Sync your inbox first.</div>
+    </div>
+
+    <div class="email-detail" *ngIf="selectedEmail">
+      <h3>{{ selectedEmail.subject }}</h3>
+      <p class="detail-from"><strong>From:</strong> {{ selectedEmail.from }}</p>
+      <p class="detail-to"><strong>To:</strong> {{ selectedEmail.to }}</p>
+      <p><strong>Category:</strong> {{ selectedEmail.category }} | <strong>Priority:</strong> {{ getPriorityLabel(selectedEmail.priority) }}</p>
+
+      <div class="body-section">
+        <h4>Email Body</h4>
+        <div class="body-content">{{ selectedEmail.body || selectedEmail.snippet }}</div>
+      </div>
+
+      <div class="draft-section" *ngIf="selectedEmail.draftReply">
+        <h4>✨ AI Draft Reply</h4>
+        <div class="draft-content">{{ selectedEmail.draftReply }}</div>
+        <p class="draft-note">This is a suggestion only. Review before sending.</p>
+      </div>
+    </div>
+  </div>
+</div>

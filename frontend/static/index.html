@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #333; }
+    .hidden { display: none !important; }
+    .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .auth-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    .auth-card h2 { margin-bottom: 1.5rem; text-align: center; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+    .form-group input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+    .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; color: white; background: #1976d2; width: 100%; }
+    .btn:hover { background: #1565c0; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-gmail { background: #db4437; }
+    .btn-outlook { background: #0078d4; }
+    .btn-secondary { background: #666; }
+    .btn-sm { padding: 0.5rem 1rem; width: auto; }
+    .error { background: #fee; color: #c00; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
+    .link { color: #1976d2; cursor: pointer; text-decoration: underline; }
+    .text-center { text-align: center; margin-top: 1rem; }
+    .dashboard { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .dashboard header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+    .stat-number { font-size: 2rem; font-weight: bold; color: #1976d2; }
+    .stat-label { color: #666; margin-top: 0.25rem; }
+    .connect-section { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .provider-btns { display: flex; gap: 1rem; margin-top: 0.75rem; }
+    .categories { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .cat-card { background: white; padding: 0.75rem 1rem; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; justify-content: space-between; text-transform: capitalize; }
+    .cat-count { font-weight: bold; color: #1976d2; }
+    .emails-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 768px) { .emails-layout { grid-template-columns: 1fr; } }
+    .email-list { max-height: 70vh; overflow-y: auto; }
+    .email-item { padding: 1rem; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer; background: white; transition: background 0.2s; }
+    .email-item:hover { background: #f5f5f5; }
+    .email-item.selected { background: #e3f2fd; border-color: #1976d2; }
+    .email-header { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
+    .email-from { font-weight: 500; font-size: 0.9rem; }
+    .email-priority { font-size: 0.8rem; }
+    .email-subject { font-size: 0.95rem; margin-bottom: 0.25rem; }
+    .email-meta { display: flex; justify-content: space-between; align-items: center; }
+    .email-category { color: white; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; text-transform: capitalize; }
+    .email-date { font-size: 0.75rem; color: #999; }
+    .email-detail { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .email-detail h3 { margin-bottom: 0.5rem; }
+    .email-body { background: #f9f9f9; padding: 1rem; border-radius: 4px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; font-size: 0.9rem; margin-top: 1rem; }
+    .draft-section { background: #e8f5e9; padding: 1rem; border-radius: 6px; margin-top: 1rem; }
+    .draft-content { padding: 0.75rem; background: white; border-radius: 4px; font-size: 0.9rem; margin-top: 0.5rem; }
+    .draft-note { margin-top: 0.5rem; font-size: 0.8rem; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="page-login" class="auth-container">
+    <div class="auth-card">
+      <h2>📧 Email Assistant</h2>
+      <div id="login-error" class="error hidden"></div>
+      <div class="form-group"><label>Email</label><input id="login-email" type="email"></div>
+      <div class="form-group"><label>Password</label><input id="login-password" type="password"></div>
+      <button class="btn" onclick="doLogin()">Sign In</button>
+      <p class="text-center">No account? <span class="link" onclick="showPage('register')">Register</span></p>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="page-register" class="auth-container hidden">
+    <div class="auth-card">
+      <h2>Create Account</h2>
+      <div id="register-error" class="error hidden"></div>
+      <div class="form-group"><label>Name</label><input id="reg-name" type="text"></div>
+      <div class="form-group"><label>Email</label><input id="reg-email" type="email"></div>
+      <div class="form-group"><label>Password</label><input id="reg-password" type="password"></div>
+      <button class="btn" onclick="doRegister()">Register</button>
+      <p class="text-center">Have an account? <span class="link" onclick="showPage('login')">Login</span></p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="dashboard hidden">
+    <header>
+      <h1>📧 Email Assistant</h1>
+      <div class="actions">
+        <button class="btn btn-sm" id="btn-sync" onclick="syncEmails()">🔄 Sync Emails</button>
+        <button class="btn btn-sm" onclick="showPage('emails')">📋 View Emails</button>
+        <button class="btn btn-sm btn-secondary" onclick="doLogout()">Logout</button>
+      </div>
+    </header>
+    <div id="dash-error" class="error hidden"></div>
+    <div class="connect-section">
+      <h3>Connect Email Provider</h3>
+      <div class="provider-btns">
+        <button class="btn btn-sm btn-gmail" onclick="connectGmail()">Connect Gmail</button>
+        <button class="btn btn-sm btn-outlook" onclick="connectOutlook()">Connect Outlook</button>
+      </div>
+    </div>
+    <div id="stats-grid" class="stats-grid"></div>
+    <div id="categories-section"></div>
+  </div>
+
+  <!-- EMAILS -->
+  <div id="page-emails" class="dashboard hidden">
+    <header>
+      <button class="btn btn-sm btn-secondary" onclick="showPage('dashboard')">← Dashboard</button>
+      <h2>Processed Emails</h2>
+    </header>
+    <div class="emails-layout">
+      <div id="email-list" class="email-list"></div>
+      <div id="email-detail" class="email-detail hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://f6enj4xux4.execute-api.us-east-1.amazonaws.com/prod';
+    let token = localStorage.getItem('token');
+    let emails = [];
+
+    if (token) { showPage('dashboard'); } else { showPage('login'); }
+
+    function showPage(page) {
+      document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById('page-' + page).classList.remove('hidden');
+      if (page === 'dashboard') loadStats();
+      if (page === 'emails') loadEmails();
+    }
+
+    async function api(method, path, body) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function doLogin() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await api('POST', '/auth/login', { email, password });
+        token = res.token; localStorage.setItem('token', token);
+        showPage('dashboard');
+      } catch (e) { showError('login-error', e.message); }
+    }
+
+    async function doRegister() {
+      const name = document.getElementById('reg-name').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      try {
+        const res = await api('POST', '/auth/register', { email, password, name });
+        token = res.token; localStorage.setItem('token', token);
+        showPage('dashboard');
+      } catch (e) { showError('register-error', e.message); }
+    }
+
+    function doLogout() { token = null; localStorage.removeItem('token'); showPage('login'); }
+
+    async function loadStats() {
+      try {
+        const stats = await api('GET', '/dashboard/stats');
+        document.getElementById('stats-grid').innerHTML = `
+          <div class="stat-card"><div class="stat-number">${stats.total}</div><div class="stat-label">Total Emails</div></div>
+          <div class="stat-card"><div class="stat-number">${stats.processed}</div><div class="stat-label">Processed</div></div>
+          <div class="stat-card"><div class="stat-number">${stats.unprocessed}</div><div class="stat-label">Unprocessed</div></div>`;
+        if (stats.byCategory && Object.keys(stats.byCategory).length > 0) {
+          const cats = Object.entries(stats.byCategory).map(([k,v]) => `<div class="cat-card"><span>${k}</span><span class="cat-count">${v}</span></div>`).join('');
+          document.getElementById('categories-section').innerHTML = `<h3>Categories</h3><div class="categories">${cats}</div>`;
+        }
+      } catch (e) { showError('dash-error', e.message); }
+    }
+
+    async function syncEmails() {
+      const btn = document.getElementById('btn-sync');
+      btn.disabled = true; btn.textContent = '⏳ Syncing...';
+      try {
+        const res = await api('POST', '/emails/sync');
+        btn.textContent = '✅ Synced ' + res.synced + ' emails';
+        loadStats();
+        setTimeout(() => { btn.textContent = '🔄 Sync Emails'; btn.disabled = false; }, 3000);
+      } catch (e) { showError('dash-error', e.message); btn.textContent = '🔄 Sync Emails'; btn.disabled = false; }
+    }
+
+    function connectGmail() { window.location.href = API + '/auth/oauth/gmail'; }
+    function connectOutlook() { window.location.href = API + '/auth/oauth/outlook'; }
+
+    async function loadEmails() {
+      try {
+        emails = await api('GET', '/emails');
+        emails.sort((a, b) => (a.priority || 5) - (b.priority || 5));
+        const list = document.getElementById('email-list');
+        if (emails.length === 0) { list.innerHTML = '<p style="padding:2rem;color:#999;text-align:center">No emails. Sync your inbox first.</p>'; return; }
+        list.innerHTML = emails.map((e, i) => `
+          <div class="email-item" onclick="selectEmail(${i})">
+            <div class="email-header"><span class="email-from">${esc(e.from||'Unknown')}</span><span class="email-priority">${priorityLabel(e.priority)}</span></div>
+            <div class="email-subject">${esc(e.subject||'(no subject)')}</div>
+            <div class="email-meta"><span class="email-category" style="background:${catColor(e.category)}">${e.category||'unknown'}</span><span class="email-date">${e.receivedAt?new Date(e.receivedAt).toLocaleString():''}</span></div>
+          </div>`).join('');
+      } catch (e) { document.getElementById('email-list').innerHTML = '<p class="error">'+e.message+'</p>'; }
+    }
+
+    function selectEmail(idx) {
+      const e = emails[idx];
+      document.querySelectorAll('.email-item').forEach((el,i) => el.classList.toggle('selected', i===idx));
+      const d = document.getElementById('email-detail');
+      d.classList.remove('hidden');
+      d.innerHTML = `<h3>${esc(e.subject||'')}</h3><p><strong>From:</strong> ${esc(e.from||'')}</p><p><strong>To:</strong> ${esc(e.to||'')}</p>
+        <p><strong>Category:</strong> ${e.category||'-'} | <strong>Priority:</strong> ${priorityLabel(e.priority)}</p>
+        <div class="email-body">${esc(e.body||e.snippet||'No content')}</div>
+        ${e.draftReply?'<div class="draft-section"><h4>✨ AI Draft Reply</h4><div class="draft-content">'+esc(e.draftReply)+'</div><p class="draft-note">This is a suggestion only. Review before sending.</p></div>':''}`;
+    }
+
+    function priorityLabel(p) { return {1:'🔴 Critical',2:'🟠 High',3:'🟡 Medium',4:'🟢 Low',5:'⚪ Minimal'}[p]||'⚪'; }
+    function catColor(c) { return {urgent:'#e53935',sales:'#43a047',support:'#1e88e5',newsletter:'#8e24aa',personal:'#fb8c00',other:'#757575'}[c]||'#757575'; }
+    function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function showError(id, msg) { const el=document.getElementById(id); el.textContent=msg; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),5000); }
+  </script>
+</body>
+</html>

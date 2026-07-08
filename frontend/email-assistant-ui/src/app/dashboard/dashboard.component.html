@@ -1,0 +1,47 @@
+<div class="dashboard">
+  <header>
+    <h1>📧 Email Assistant</h1>
+    <div class="actions">
+      <button (click)="syncEmails()" [disabled]="syncing">
+        {{ syncing ? 'Syncing...' : '🔄 Sync Emails' }}
+      </button>
+      <button (click)="goToEmails()">📋 View Emails</button>
+      <button class="secondary" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="error" *ngIf="error">{{ error }}</div>
+
+  <section class="connect-providers">
+    <h3>Connect Email Provider</h3>
+    <div class="provider-buttons">
+      <button class="gmail" (click)="connectGmail()">Connect Gmail</button>
+      <button class="outlook" (click)="connectOutlook()">Connect Outlook</button>
+    </div>
+  </section>
+
+  <section class="stats-grid" *ngIf="stats">
+    <div class="stat-card">
+      <span class="stat-number">{{ stats.total }}</span>
+      <span class="stat-label">Total Emails</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">{{ stats.processed }}</span>
+      <span class="stat-label">Processed</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">{{ stats.unprocessed }}</span>
+      <span class="stat-label">Unprocessed</span>
+    </div>
+  </section>
+
+  <section class="categories" *ngIf="stats?.byCategory">
+    <h3>Categories</h3>
+    <div class="category-grid">
+      <div class="category-card" *ngFor="let cat of getCategoryKeys()">
+        <span class="cat-name">{{ cat }}</span>
+        <span class="cat-count">{{ stats!.byCategory[cat] }}</span>
+      </div>
+    </div>
+  </section>
+</div>
